@@ -83,6 +83,12 @@ pub fn render(
     }
 
     if access == Access::WriteOnly || access == Access::ReadWrite {
+        match register
+            .reset_value
+            .or(defs.reset_value)
+            .map(|rv| util::hex(rv))
+        {
+            Some(x) => {
         reg_impl_items.push(quote! {
             /// Writes to the register
             #[inline]
@@ -96,34 +102,13 @@ pub fn render(
             }
         });
 
-        mod_items.push(quote! {
-            /// Value to write to the register
-            pub struct W {
-                bits: #rty,
-            }
-        });
-
-        let rv = register
-            .reset_value
-            .or(defs.reset_value)
-            .map(|rv| util::hex(rv))
-            .ok_or_else(|| format!("Register {} has no reset value", register.name))?;
-
         w_impl_items.push(quote! {
             /// Reset value of the register
             #[inline]
             pub fn reset_value() -> W {
-                W { bits: #rv }
-            }
-
-            /// Writes raw bits to the register
-            #[inline]
-            pub #unsafety fn bits(&mut self, bits: #rty) -> &mut Self {
-                self.bits = bits;
-                self
+                        W { bits: #x }
             }
         });
-    }
 
     if access == Access::ReadWrite {
         reg_impl_items.push(quote! {
@@ -133,6 +118,40 @@ pub fn render(
                 self.write(|w| w)
             }
         })
+    }
+            }
+
+            None => {
+                reg_impl_items.push(quote! {
+                    /// Writes to the register
+                    #[inline]
+                    pub fn write<F>(&self, f: F)
+                    where
+                        F: FnOnce(&mut W) -> &mut W
+                    {
+                        let mut w = W { bits: 0 };
+                        f(&mut w);
+                        self.register.set(w.bits);
+                    }
+                });
+            }
+        }
+
+        mod_items.push(quote! {
+            /// Value to write to the register
+            pub struct W {
+                bits: #rty,
+            }
+        });
+
+        w_impl_items.push(quote! {
+            /// Writes raw bits to the register
+            #[inline]
+            pub #unsafety fn bits(&mut self, bits: #rty) -> &mut Self {
+                self.bits = bits;
+                self
+            }
+        });
     }
 
     mod_items.push(quote! {
