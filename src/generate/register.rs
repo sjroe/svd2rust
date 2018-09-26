@@ -89,36 +89,36 @@ pub fn render(
             .map(|rv| util::hex(rv))
         {
             Some(x) => {
-        reg_impl_items.push(quote! {
-            /// Writes to the register
-            #[inline]
-            pub fn write<F>(&self, f: F)
-            where
-                F: FnOnce(&mut W) -> &mut W
-            {
-                let mut w = W::reset_value();
-                f(&mut w);
-                self.register.set(w.bits);
-            }
-        });
+                reg_impl_items.push(quote! {
+                    /// Writes to the register
+                    #[inline]
+                    pub fn write<F>(&self, f: F)
+                    where
+                        F: FnOnce(&mut W) -> &mut W
+                    {
+                        let mut w = W::reset_value();
+                        f(&mut w);
+                        self.register.set(w.bits);
+                    }
+                });
 
-        w_impl_items.push(quote! {
-            /// Reset value of the register
-            #[inline]
-            pub fn reset_value() -> W {
-                        W { bits: #x }
-            }
-        });
+                w_impl_items.push(quote! {
+                    /// Reset value of the register
+                    #[inline]
+                    pub fn reset_value() -> W {
+                                W { bits: #x }
+                    }
+                });
 
-    if access == Access::ReadWrite {
-        reg_impl_items.push(quote! {
-            /// Writes the reset value to the register
-            #[inline]
-            pub fn reset(&self) {
-                self.write(|w| w)
-            }
-        })
-    }
+                if access == Access::ReadWrite {
+                    reg_impl_items.push(quote! {
+                        /// Writes the reset value to the register
+                        #[inline]
+                        pub fn reset(&self) {
+                            self.write(|w| w)
+                        }
+                    })
+                }
             }
 
             None => {
